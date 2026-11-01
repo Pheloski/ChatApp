@@ -1,5 +1,6 @@
 package com.mycompany.chatapp;
 
+import java.util.List;
 import java.util.Scanner;
 
 public class ChatApp {
@@ -29,13 +30,21 @@ public class ChatApp {
 
         System.out.println(login.returnLoginStatus(loginUser, loginPass, first, last));
 
-        // ---- Part 2: messages are only available after a successful login ----
+        // ---- Messaging is only available after a successful login ----
         if (!login.loginUser(loginUser, loginPass)) {
             sc.close();
             return;
         }
 
+        String sender = first + " " + last;
+
         System.out.println("\nWelcome to QuickChat.");
+
+        int loaded = Message.loadStoredMessages();
+        if (loaded > 0) {
+            System.out.println("Loaded " + loaded + " stored message(s) from the JSON file.");
+        }
+
         int messageLimit = readPositiveNumber(sc, "How many messages do you wish to enter? ");
 
         boolean messagesEntered = false;
@@ -44,6 +53,7 @@ public class ChatApp {
             System.out.println("\n1) Send Messages");
             System.out.println("2) Show recently sent messages");
             System.out.println("3) Quit");
+            System.out.println("4) Stored Messages");
             System.out.print("Choose an option: ");
             String choice = sc.nextLine().trim();
 
@@ -53,33 +63,36 @@ public class ChatApp {
                         System.out.println("You have already entered all "
                                 + messageLimit + " messages.");
                     } else {
-                        sendMessages(sc, messageLimit);
+                        sendMessages(sc, messageLimit, sender);
                         messagesEntered = true;
                     }
                     break;
                 case "2":
-                    System.out.println("Coming Soon.");
+                    System.out.println(Message.getSentMessagesReport());
                     break;
                 case "3":
                     running = false;
                     System.out.println("Goodbye!");
                     break;
+                case "4":
+                    storedMessagesMenu(sc);
+                    break;
                 default:
-                    System.out.println("Invalid option; please enter 1, 2 or 3.");
+                    System.out.println("Invalid option; please enter 1, 2, 3 or 4.");
             }
         }
         sc.close();
     }
 
     /** Lets the user enter exactly the number of messages they chose. */
-    private static void sendMessages(Scanner sc, int messageLimit) {
+    private static void sendMessages(Scanner sc, int messageLimit, String sender) {
         for (int i = 0; i < messageLimit; i++) {
             System.out.println("\n--- Message " + (i + 1) + " of " + messageLimit + " ---");
 
             String recipient = readRecipient(sc);
             String text = readMessageText(sc);
 
-            Message message = new Message(i, recipient, text);
+            Message message = new Message(i, sender, recipient, text);
             System.out.println(message.getMessageIDStatus());
             System.out.println("Message Hash: " + message.getMessageHash());
 
@@ -88,6 +101,73 @@ public class ChatApp {
 
         System.out.println("\nMessages sent:\n" + Message.printMessages());
         System.out.println("\nTotal number of messages sent: " + Message.returnTotalMessages());
+    }
+
+    /** The "Stored Messages" menu, which works on the stored message arrays. */
+    private static void storedMessagesMenu(Scanner sc) {
+        boolean inMenu = true;
+        while (inMenu) {
+            System.out.println("\n--- Stored Messages ---");
+            System.out.println("1) Display the sender and recipient of all stored messages");
+            System.out.println("2) Display the longest stored message");
+            System.out.println("3) Search for a message ID");
+            System.out.println("4) Search for all messages for a recipient");
+            System.out.println("5) Delete a message using its hash");
+            System.out.println("6) Display a report of all stored messages");
+            System.out.println("7) Back to the main menu");
+            System.out.print("Choose an option: ");
+            String choice = sc.nextLine().trim();
+
+            switch (choice) {
+                case "1":
+                    System.out.println(Message.getStoredSendersAndRecipients());
+                    break;
+                case "2":
+                    System.out.println(Message.getLongestStoredMessage());
+                    break;
+                case "3":
+                    searchByID(sc);
+                    break;
+                case "4":
+                    searchByRecipient(sc);
+                    break;
+                case "5":
+                    System.out.print("Enter the message hash: ");
+                    System.out.println(Message.deleteMessageByHash(sc.nextLine().trim()));
+                    break;
+                case "6":
+                    System.out.println(Message.getStoredMessagesReport());
+                    break;
+                case "7":
+                    inMenu = false;
+                    break;
+                default:
+                    System.out.println("Invalid option; please enter a number from 1 to 7.");
+            }
+        }
+    }
+
+    private static void searchByID(Scanner sc) {
+        System.out.print("Enter the message ID: ");
+        Message found = Message.searchByMessageID(sc.nextLine().trim());
+        if (found == null) {
+            System.out.println("No message was found with that ID.");
+        } else {
+            System.out.println("Recipient: " + found.getRecipient());
+            System.out.println("Message: " + found.getText());
+        }
+    }
+
+    private static void searchByRecipient(Scanner sc) {
+        System.out.print("Enter the recipient's cell number: ");
+        List<String> found = Message.searchByRecipient(sc.nextLine().trim());
+        if (found.isEmpty()) {
+            System.out.println("No messages were found for that recipient.");
+        } else {
+            for (String text : found) {
+                System.out.println("Message: " + text);
+            }
+        }
     }
 
     private static String readRecipient(Scanner sc) {
