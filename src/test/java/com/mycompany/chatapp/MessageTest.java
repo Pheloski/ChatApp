@@ -1,12 +1,10 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/UnitTests/JUnit5TestClass.java to edit this template
- */
-
 package com.mycompany.chatapp;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -90,6 +88,22 @@ public class MessageTest {
         assertTrue(message.checkMessageID());
         assertEquals(10, message.getMessageID().length());
         assertTrue(message.getMessageID().matches("[0-9]{10}"));
+    }
+
+    @Test
+    public void testMessageIDUsesLoopCounterAndMatchesHash() {
+        List<String> ids = new ArrayList<>();
+        for (int i = 0; i < 5; i++) {
+            Message message = new Message(i, RECIPIENT_1, TEXT_1);
+            String id = message.getMessageID();
+
+            assertEquals(10, id.length());
+            assertTrue(id.matches("[0-9]{10}"));
+            assertEquals(String.format("%02d", i), id.substring(8));
+            assertEquals(id.substring(0, 2) + ":" + i + ":HITONIGHT", message.getMessageHash());
+            ids.add(id);
+        }
+        assertEquals(5, new HashSet<>(ids).size());
     }
 
     @Test
